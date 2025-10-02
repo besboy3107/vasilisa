@@ -25,12 +25,28 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Preflight env check
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          IMAGE_PROVIDER: ${{ vars.IMAGE_PROVIDER || 'unsplash' }}
+        run: |
+          set -e
+          echo "IMAGE_PROVIDER=${IMAGE_PROVIDER:-unsplash}"
+          if [ -z "$OPENAI_API_KEY" ]; then echo "OPENAI_API_KEY is EMPTY"; exit 1; else echo "OPENAI_API_KEY is SET"; fi
+          if [ "${IMAGE_PROVIDER:-unsplash}" = "unsplash" ]; then
+            if [ -z "$UNSPLASH_ACCESS_KEY" ]; then echo "UNSPLASH_ACCESS_KEY is EMPTY"; exit 1; else echo "UNSPLASH_ACCESS_KEY is SET"; fi
+          else
+            if [ -z "$PEXELS_API_KEY" ]; then echo "PEXELS_API_KEY is EMPTY"; exit 1; else echo "PEXELS_API_KEY is SET"; fi
+          fi
+
       - name: Generate content
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          IMAGE_PROVIDER: unsplash
+          IMAGE_PROVIDER: ${{ vars.IMAGE_PROVIDER || 'unsplash' }}
           CONTENT_BASE_DIR: content
           ARTICLES_PER_DAY: 10
           INLINE_IMAGES: 2

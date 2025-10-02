@@ -81,7 +81,11 @@ def _gigachat_get_token(cfg: Config) -> str:
         "scope": cfg.gigachat_scope,
         "grant_type": "client_credentials",
     }
-    auth = (cfg.gigachat_client_id or "", cfg.gigachat_client_secret or "")
+    auth = None
+    if cfg.gigachat_basic:
+        headers["Authorization"] = f"Basic {cfg.gigachat_basic}"
+    else:
+        auth = (cfg.gigachat_client_id or "", cfg.gigachat_client_secret or "")
     verify = cfg.gigachat_verify_ssl
     resp = requests.post(cfg.gigachat_token_url, headers=headers, data=data, auth=auth, verify=verify, timeout=30)
     resp.raise_for_status()
@@ -89,8 +93,8 @@ def _gigachat_get_token(cfg: Config) -> str:
 
 
 def _generate_with_gigachat(topic: str, cfg: Config) -> Dict[str, Any]:
-    if not (cfg.gigachat_client_id and cfg.gigachat_client_secret):
-        raise RuntimeError("GIGACHAT_CLIENT_ID and GIGACHAT_CLIENT_SECRET are required for LLM_PROVIDER=gigachat")
+    if not (cfg.gigachat_basic or (cfg.gigachat_client_id and cfg.gigachat_client_secret)):
+        raise RuntimeError("Provide GIGACHAT_BASIC or both GIGACHAT_CLIENT_ID and GIGACHAT_CLIENT_SECRET")
 
     token = _gigachat_get_token(cfg)
     headers = {

@@ -22,6 +22,7 @@ class Config:
     # GigaChat (Sber)
     gigachat_client_id: Optional[str]
     gigachat_client_secret: Optional[str]
+    gigachat_basic: Optional[str]
     gigachat_scope: str
     gigachat_base_url: str
     gigachat_token_url: str
@@ -55,6 +56,7 @@ def load_config(env_path: Optional[Path] = None) -> Config:
 
     gigachat_client_id = os.getenv("GIGACHAT_CLIENT_ID")
     gigachat_client_secret = os.getenv("GIGACHAT_CLIENT_SECRET")
+    gigachat_basic = os.getenv("GIGACHAT_BASIC")
     gigachat_scope = os.getenv("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
     gigachat_base_url = os.getenv("GIGACHAT_BASE_URL", "https://gigachat.devices.sberbank.ru/api/v1")
     gigachat_token_url = os.getenv("GIGACHAT_TOKEN_URL", "https://ngw.devices.sberbank.ru:9443/api/v2/oauth")
@@ -81,6 +83,7 @@ def load_config(env_path: Optional[Path] = None) -> Config:
         gigachat_base_url=gigachat_base_url,
         gigachat_token_url=gigachat_token_url,
         gigachat_verify_ssl=gigachat_verify_ssl,
+        gigachat_basic=gigachat_basic,
         unsplash_access_key=unsplash_access_key,
         pexels_api_key=pexels_api_key,
         pixabay_api_key=pixabay_api_key,

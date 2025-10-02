@@ -14,6 +14,11 @@ jobs:
     concurrency:
       group: content-generation
       cancel-in-progress: true
+    env:
+      CONTENT_BASE_DIR: content
+      ARTICLES_PER_DAY: 10
+      INLINE_IMAGES: 2
+      IMAGE_PROVIDER: ${{ vars.IMAGE_PROVIDER || 'unsplash' }}
 
     steps:
       - name: Checkout
@@ -37,7 +42,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          IMAGE_PROVIDER: ${{ vars.IMAGE_PROVIDER || 'unsplash' }}
+          IMAGE_PROVIDER: ${{ env.IMAGE_PROVIDER }}
         run: |
           set -e
           echo "IMAGE_PROVIDER=${IMAGE_PROVIDER:-unsplash}"
@@ -67,12 +72,21 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          IMAGE_PROVIDER: ${{ vars.IMAGE_PROVIDER || 'unsplash' }}
-          CONTENT_BASE_DIR: content
-          ARTICLES_PER_DAY: 10
-          INLINE_IMAGES: 2
+          IMAGE_PROVIDER: ${{ env.IMAGE_PROVIDER }}
+          CONTENT_BASE_DIR: ${{ env.CONTENT_BASE_DIR }}
+          ARTICLES_PER_DAY: ${{ env.ARTICLES_PER_DAY }}
+          INLINE_IMAGES: ${{ env.INLINE_IMAGES }}
         run: |
           python -m content_bot generate --count ${ARTICLES_PER_DAY}
+
+      - name: List generated files
+        run: |
+          echo "Listing ${CONTENT_BASE_DIR} (if exists)"
+          if [ -d "${CONTENT_BASE_DIR}" ]; then
+            ls -R "${CONTENT_BASE_DIR}" || true
+          else
+            echo "Directory ${CONTENT_BASE_DIR} does not exist"
+          fi
 
       - name: Create pull request with generated content
         if: ${{ always() }}
@@ -88,4 +102,4 @@ jobs:
           branch: bot/daily-content
           branch-suffix: timestamp
           add-paths: |
-            content/**
+            ${{ env.CONTENT_BASE_DIR }}/**

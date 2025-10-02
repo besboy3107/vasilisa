@@ -52,6 +52,23 @@ def _search_pexels(query: str, per_page: int, api_key: str, timeout: int) -> Lis
         )
     return results
 
+def _search_pixabay(query: str, per_page: int, api_key: str, timeout: int) -> List[ImageResult]:
+    endpoint = "https://pixabay.com/api/"
+    params = {"key": api_key, "q": query, "per_page": per_page, "image_type": "photo", "safesearch": "true"}
+    r = requests.get(endpoint, params=params, timeout=timeout)
+    r.raise_for_status()
+    results: List[ImageResult] = []
+    for item in r.json().get("hits", []):
+        results.append(
+            ImageResult(
+                url=item.get("largeImageURL") or item.get("webformatURL"),
+                author=item.get("user"),
+                link=item.get("pageURL"),
+                source="pixabay",
+            )
+        )
+    return results
+
 
 def search_images(
     query: str,
@@ -60,6 +77,7 @@ def search_images(
     *,
     unsplash_access_key: Optional[str] = None,
     pexels_api_key: Optional[str] = None,
+    pixabay_api_key: Optional[str] = None,
     timeout: int = 60,
 ) -> List[ImageResult]:
     provider = (provider or "unsplash").lower()
@@ -71,6 +89,10 @@ def search_images(
         if not pexels_api_key:
             raise RuntimeError("PEXELS_API_KEY is required for provider=pexels")
         return _search_pexels(query, per_page, pexels_api_key, timeout)
+    if provider == "pixabay":
+        if not pixabay_api_key:
+            raise RuntimeError("PIXABAY_API_KEY is required for provider=pixabay")
+        return _search_pixabay(query, per_page, pixabay_api_key, timeout)
     raise ValueError(f"Unknown image provider: {provider}")
 
 

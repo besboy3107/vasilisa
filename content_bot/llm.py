@@ -4,6 +4,7 @@ import re
 from typing import Any, Dict
 
 from .config import Config
+import requests
 
 
 def _extract_json(text: str) -> str:
@@ -36,9 +37,12 @@ def _build_prompt(topic: str) -> str:
 
 
 def generate_article_payload(topic: str, cfg: Config) -> Dict[str, Any]:
+    if cfg.llm_provider == "gigachat":
+        return _generate_with_gigachat(topic, cfg)
+    # default: openai-compatible
     try:
         from openai import OpenAI  # type: ignore
-    except Exception as e:  # pragma: no cover - import-time failure
+    except Exception as e:  # pragma: no cover
         raise RuntimeError("openai package is required. Add to requirements.txt and install.") from e
 
     if not cfg.openai_api_key:
@@ -52,7 +56,6 @@ def generate_article_payload(topic: str, cfg: Config) -> Dict[str, Any]:
     )
     user_msg = _build_prompt(topic)
 
-    # Use Chat Completions for broad compatibility
     resp = client.chat.completions.create(
         model=cfg.openai_model,
         messages=[
@@ -63,6 +66,51 @@ def generate_article_payload(topic: str, cfg: Config) -> Dict[str, Any]:
     )
 
     text = resp.choices[0].message.content or "{}"
+    try:
+        return json.loads(text)
+    except Exception:
+        return json.loads(_extract_json(text))
+
+
+def _gigachat_get_token(cfg: Config) -> str:
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "application/json",
+    }
+    data = {
+        "scope": cfg.gigachat_scope,
+        "grant_type": "client_credentials",
+    }
+    auth = (cfg.gigachat_client_id or "", cfg.gigachat_client_secret or "")
+    verify = cfg.gigachat_verify_ssl
+    resp = requests.post(cfg.gigachat_token_url, headers=headers, data=data, auth=auth, verify=verify, timeout=30)
+    resp.raise_for_status()
+    return resp.json().get("access_token")
+
+
+def _generate_with_gigachat(topic: str, cfg: Config) -> Dict[str, Any]:
+    if not (cfg.gigachat_client_id and cfg.gigachat_client_secret):
+        raise RuntimeError("GIGACHAT_CLIENT_ID and GIGACHAT_CLIENT_SECRET are required for LLM_PROVIDER=gigachat")
+
+    token = _gigachat_get_token(cfg)
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    payload = {
+        "model": "GigaChat",  # default model name per API
+        "messages": [
+            {"role": "system", "content": "Ты — опытный редактор. Возвращай только валидный JSON."},
+            {"role": "user", "content": _build_prompt(topic)},
+        ],
+        "temperature": 0.7,
+    }
+    verify = cfg.gigachat_verify_ssl
+    resp = requests.post(f"{cfg.gigachat_base_url}/chat/completions", headers=headers, json=payload, verify=verify, timeout=60)
+    resp.raise_for_status()
+    data = resp.json()
+    text = data.get("choices", [{}])[0].get("message", {}).get("content", "{}")
     try:
         return json.loads(text)
     except Exception:

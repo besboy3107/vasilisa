@@ -24,7 +24,7 @@ def cli() -> None:
 @click.option("--topics-file", type=click.Path(path_type=Path), help="Optional file with topics (one per line)")
 @click.option("--output-dir", type=click.Path(path_type=Path), help="Base content directory")
 @click.option("--date", "date_str", type=str, help="YYYY-MM-DD for subdir; default: today UTC")
-@click.option("--provider", type=click.Choice(["unsplash", "pexels"]), help="Image provider override")
+@click.option("--provider", type=click.Choice(["unsplash", "pexels", "pixabay"]), help="Image provider override")
 @click.option("--inline-images", type=int, help="Number of inline images per article")
 def generate(count: int, topics_file: Optional[Path], output_dir: Optional[Path], date_str: Optional[str], provider: Optional[str], inline_images: Optional[int]) -> None:
     """Generate N articles with images into content/DATE/SLUG."""

@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     concurrency:
       group: content-generation
       cancel-in-progress: true
@@ -73,26 +74,18 @@ jobs:
         run: |
           python -m content_bot generate --count ${ARTICLES_PER_DAY}
 
-      - name: Commit and push changes
-        env:
-          BRANCH_NAME: ${{ github.ref_name }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: |
-          set -e
-          # Skip quietly if no content directory or it's empty
-          if [ ! -d content ] || [ -z "$(ls -A content 2>/dev/null || true)" ]; then
-            echo "No generated content to commit"
-            exit 0
-          fi
-
-          git add content || true
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "chore(content): add daily generated articles"
-            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-            git fetch origin "$BRANCH_NAME"
-            git pull --rebase origin "$BRANCH_NAME" || true
-            git push origin HEAD:"$BRANCH_NAME"
-          fi
+      - name: Create pull request with generated content
+        if: ${{ always() }}
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(content): add daily generated articles"
+          title: "chore(content): add daily generated articles"
+          body: |
+            Automated content generation.
+            - Provider: ${{ env.IMAGE_PROVIDER }}
+            - Articles: ${{ env.ARTICLES_PER_DAY }}
+          branch: bot/daily-content
+          branch-suffix: timestamp
+          add-paths: |
+            content/**

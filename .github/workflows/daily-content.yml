@@ -17,8 +17,6 @@ jobs:
     env:
       CONTENT_BASE_DIR: content
       ARTICLES_PER_DAY: 10
-      INLINE_IMAGES: 2
-      IMAGE_PROVIDER: ${{ vars.IMAGE_PROVIDER || 'unsplash' }}
 
     steps:
       - name: Checkout
@@ -39,35 +37,35 @@ jobs:
 
       - name: Preflight env check
         env:
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'gigachat' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
-          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          IMAGE_PROVIDER: ${{ env.IMAGE_PROVIDER }}
+          GIGACHAT_CLIENT_ID: ${{ secrets.GIGACHAT_CLIENT_ID }}
+          GIGACHAT_CLIENT_SECRET: ${{ secrets.GIGACHAT_CLIENT_SECRET }}
+          GIGACHAT_BASIC: ${{ secrets.GIGACHAT_BASIC }}
         run: |
           set -e
-          echo "IMAGE_PROVIDER=${IMAGE_PROVIDER:-unsplash}"
-          if [ -z "$OPENAI_API_KEY" ]; then echo "OPENAI_API_KEY is EMPTY"; exit 1; else echo "OPENAI_API_KEY is SET"; fi
-          if [ "${IMAGE_PROVIDER:-unsplash}" = "unsplash" ]; then
-            if [ -z "$UNSPLASH_ACCESS_KEY" ]; then echo "UNSPLASH_ACCESS_KEY is EMPTY"; exit 1; else echo "UNSPLASH_ACCESS_KEY is SET"; fi
+          echo "LLM_PROVIDER=${LLM_PROVIDER}"
+          if [ "${LLM_PROVIDER}" = "gigachat" ]; then
+            if [ -z "$GIGACHAT_BASIC" ] && { [ -z "$GIGACHAT_CLIENT_ID" ] || [ -z "$GIGACHAT_CLIENT_SECRET" ]; }; then
+              echo "GIGACHAT creds are EMPTY"; exit 1; else echo "GIGACHAT creds are SET"; fi
           else
-            if [ -z "$PEXELS_API_KEY" ]; then echo "PEXELS_API_KEY is EMPTY"; exit 1; else echo "PEXELS_API_KEY is SET"; fi
+            if [ -z "$OPENAI_API_KEY" ]; then echo "OPENAI_API_KEY is EMPTY"; exit 1; else echo "OPENAI_API_KEY is SET"; fi
           fi
 
-      - name: Generate content
+      - name: Generate content (text-only)
         env:
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'gigachat' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
-          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          IMAGE_PROVIDER: ${{ env.IMAGE_PROVIDER }}
+          GIGACHAT_CLIENT_ID: ${{ secrets.GIGACHAT_CLIENT_ID }}
+          GIGACHAT_CLIENT_SECRET: ${{ secrets.GIGACHAT_CLIENT_SECRET }}
+          GIGACHAT_BASIC: ${{ secrets.GIGACHAT_BASIC }}
           CONTENT_BASE_DIR: ${{ env.CONTENT_BASE_DIR }}
           ARTICLES_PER_DAY: ${{ env.ARTICLES_PER_DAY }}
-          INLINE_IMAGES: ${{ env.INLINE_IMAGES }}
         run: |
           set -e
           python -m content_bot generate --count ${ARTICLES_PER_DAY}
           [ -d "${CONTENT_BASE_DIR}" ] && [ -n "$(ls -A "${CONTENT_BASE_DIR}" 2>/dev/null || true)" ] || {
-            echo "No generated content found";
-            exit 1;
+            echo "No generated content found"; exit 1;
           }
 
       - name: List generated files
@@ -80,15 +78,14 @@ jobs:
           fi
 
       - name: Create pull request with generated content
-        if: ${{ always() }}
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore(content): add daily generated articles"
           title: "chore(content): add daily generated articles"
           body: |
-            Automated content generation.
-            - Provider: ${{ env.IMAGE_PROVIDER }}
+            Automated text-only content generation.
+            - LLM: ${{ vars.LLM_PROVIDER || 'gigachat' }}
             - Articles: ${{ env.ARTICLES_PER_DAY }}
           branch: bot/daily-content
           branch-suffix: timestamp

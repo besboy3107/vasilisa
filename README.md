@@ -38,6 +38,45 @@ Follow these steps to open this sample in a container using the VS Code Dev Cont
    - Press <kbd>F1</kbd> and select the **Dev Containers: Open Folder in Container...** command.
    - Select the cloned copy of this folder, wait for the container to start, and try things out!
 
+## Content Bot (Автогенерация 10 статей/день)
+
+В этом репозитории добавлен изолированный бот `content_bot` для ежедневной генерации статей c изображениями.
+
+### Возможности
+- Генерирует N статей в день (по умолчанию 10) через OpenAI API
+- Подбирает яркие изображения из Unsplash или Pexels (по API)
+- Собирает Markdown с YAML-фронтматтером в `content/YYYY-MM-DD/<slug>/index.md`
+- CLI-команда: `python -m content_bot generate`
+- Готовый GitHub Actions workflow для ежедневного запуска и автокоммита
+
+### Установка
+```bash
+pip install -r requirements.txt
+cp .env.example .env
+# В .env добавьте ключи: OPENAI_API_KEY, UNSPLASH_ACCESS_KEY/PEXELS_API_KEY
+```
+
+### Запуск локально
+```bash
+python -m content_bot generate --count 10
+```
+Опции:
+- `--topics-file path` — файл с темами, по одной в строке
+- `--output-dir path` — база контента (по умолчанию `content`)
+- `--date YYYY-MM-DD` — подкаталог по дате (UTC)
+- `--provider unsplash|pexels` — провайдер изображений
+- `--inline-images N` — число внутренних картинок
+
+Переменные окружения (см. `.env.example`):
+- `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`
+- `IMAGE_PROVIDER`, `UNSPLASH_ACCESS_KEY`, `PEXELS_API_KEY`
+- `CONTENT_BASE_DIR`, `ARTICLES_PER_DAY`, `INLINE_IMAGES`, `REQUEST_TIMEOUT_SECONDS`
+
+### Автозапуск через GitHub Actions
+Workflow `.github/workflows/daily-content.yml` запускается ежедневно в 05:00 UTC.
+Перед этим добавьте секреты репозитория: `OPENAI_API_KEY`, `UNSPLASH_ACCESS_KEY`/`PEXELS_API_KEY`.
+
+---
 ## Things to try
 
 Once you have this sample opened, you'll be able to work with it like you would locally.

@@ -80,7 +80,13 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           set -e
-          git add content
+          # Skip quietly if no content directory or it's empty
+          if [ ! -d content ] || [ -z "$(ls -A content 2>/dev/null || true)" ]; then
+            echo "No generated content to commit"
+            exit 0
+          fi
+
+          git add content || true
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else

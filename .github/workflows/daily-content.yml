@@ -17,8 +17,6 @@ jobs:
     env:
       CONTENT_BASE_DIR: content
       ARTICLES_PER_DAY: 10
-      INLINE_IMAGES: 2
-      IMAGE_PROVIDER: ${{ vars.IMAGE_PROVIDER || 'unsplash' }}
 
     steps:
       - name: Checkout
@@ -39,15 +37,13 @@ jobs:
 
       - name: Preflight env check
         env:
-          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'openai' }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'gigachat' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GIGACHAT_CLIENT_ID: ${{ secrets.GIGACHAT_CLIENT_ID }}
           GIGACHAT_CLIENT_SECRET: ${{ secrets.GIGACHAT_CLIENT_SECRET }}
           GIGACHAT_BASIC: ${{ secrets.GIGACHAT_BASIC }}
-          IMAGE_PROVIDER: ${{ env.IMAGE_PROVIDER }}
         run: |
           set -e
-          echo "IMAGE_PROVIDER=${IMAGE_PROVIDER:-unsplash}"
           echo "LLM_PROVIDER=${LLM_PROVIDER}"
           if [ "${LLM_PROVIDER}" = "gigachat" ]; then
             if [ -z "$GIGACHAT_BASIC" ] && { [ -z "$GIGACHAT_CLIENT_ID" ] || [ -z "$GIGACHAT_CLIENT_SECRET" ]; }; then
@@ -70,17 +66,15 @@ jobs:
           git remote -v || true
           echo "Branch: ${GITHUB_REF} / ${GITHUB_REF_NAME}"
 
-      - name: Generate content
+      - name: Generate content (text-only)
         env:
-          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'openai' }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'gigachat' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GIGACHAT_CLIENT_ID: ${{ secrets.GIGACHAT_CLIENT_ID }}
           GIGACHAT_CLIENT_SECRET: ${{ secrets.GIGACHAT_CLIENT_SECRET }}
           GIGACHAT_BASIC: ${{ secrets.GIGACHAT_BASIC }}
-          IMAGE_PROVIDER: ${{ env.IMAGE_PROVIDER }}
           CONTENT_BASE_DIR: ${{ env.CONTENT_BASE_DIR }}
           ARTICLES_PER_DAY: ${{ env.ARTICLES_PER_DAY }}
-          INLINE_IMAGES: ${{ env.INLINE_IMAGES }}
         run: |
           set -e
           python -m content_bot generate --count ${ARTICLES_PER_DAY}
@@ -99,15 +93,14 @@ jobs:
           fi
 
       - name: Create pull request with generated content
-        if: ${{ always() }}
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore(content): add daily generated articles"
           title: "chore(content): add daily generated articles"
           body: |
-            Automated content generation.
-            - Provider: ${{ env.IMAGE_PROVIDER }}
+            Automated text-only content generation.
+            - LLM: ${{ vars.LLM_PROVIDER || 'gigachat' }}
             - Articles: ${{ env.ARTICLES_PER_DAY }}
           branch: bot/daily-content
           branch-suffix: timestamp

@@ -45,13 +45,41 @@ def generate(count: int, topics_file: Optional[Path], output_dir: Optional[Path]
         click.echo("No topics found", err=True)
         sys.exit(1)
 
+    generated = 0
+
+    def _fallback_post(topic_text: str) -> Dict[str, Any]:
+        title = topic_text.strip()[:80]
+        return {
+            "title": title,
+            "subtitle": "Черновик статьи",
+            "slug": slugify(title),
+            "keywords": ["черновик", "статья"],
+            "description": "Автоматически сгенерированный черновик статьи.",
+            "sections": [
+                {
+                    "heading": "Введение",
+                    "content_md": "Черновик создан автоматически, так как основной провайдер контента недоступен. Обновите ключи API и перезапустите генерацию.",
+                },
+                {
+                    "heading": "Основные идеи",
+                    "content_md": "Опишите ключевые тезисы по теме и добавьте примеры.",
+                },
+                {
+                    "heading": "Выводы",
+                    "content_md": "Сформулируйте краткие выводы и список действий.",
+                },
+            ],
+            "image_queries": [{"topic": topic_text, "style": "vibrant, cinematic"}],
+            "sources": [],
+        }
+
     for idx, topic in enumerate(topics[:count], start=1):
         click.echo(f"[{idx}/{count}] Topic: {topic}")
         try:
             post = generate_article_payload(topic, cfg)
         except Exception as e:
             click.echo(f"  LLM error: {e}", err=True)
-            continue
+            post = _fallback_post(topic)
 
         slug = post.get("slug") or slugify(post.get("title") or topic)
         out_dir = (output_dir / date_dir / slug)
@@ -108,6 +136,10 @@ def generate(count: int, topics_file: Optional[Path], output_dir: Optional[Path]
                 continue
 
         write_markdown(post, images_meta, out_dir)
+        generated += 1
         time.sleep(0.5)
 
-    click.echo("Done.")
+    if generated == 0:
+        click.echo("No articles generated", err=True)
+        raise SystemExit(1)
+    click.echo(f"Done. Generated {generated} article(s).")

@@ -77,7 +77,12 @@ jobs:
           ARTICLES_PER_DAY: ${{ env.ARTICLES_PER_DAY }}
           INLINE_IMAGES: ${{ env.INLINE_IMAGES }}
         run: |
+          set -e
           python -m content_bot generate --count ${ARTICLES_PER_DAY}
+          [ -d "${CONTENT_BASE_DIR}" ] && [ -n "$(ls -A "${CONTENT_BASE_DIR}" 2>/dev/null || true)" ] || {
+            echo "No generated content found";
+            exit 1;
+          }
 
       - name: List generated files
         run: |

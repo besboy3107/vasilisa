@@ -41,28 +41,19 @@ jobs:
         env:
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'openai' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
-          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
           GIGACHAT_CLIENT_ID: ${{ secrets.GIGACHAT_CLIENT_ID }}
           GIGACHAT_CLIENT_SECRET: ${{ secrets.GIGACHAT_CLIENT_SECRET }}
+          GIGACHAT_BASIC: ${{ secrets.GIGACHAT_BASIC }}
           IMAGE_PROVIDER: ${{ env.IMAGE_PROVIDER }}
         run: |
           set -e
           echo "IMAGE_PROVIDER=${IMAGE_PROVIDER:-unsplash}"
           echo "LLM_PROVIDER=${LLM_PROVIDER}"
           if [ "${LLM_PROVIDER}" = "gigachat" ]; then
-            if [ -z "$GIGACHAT_CLIENT_ID" ] || [ -z "$GIGACHAT_CLIENT_SECRET" ]; then
+            if [ -z "$GIGACHAT_BASIC" ] && { [ -z "$GIGACHAT_CLIENT_ID" ] || [ -z "$GIGACHAT_CLIENT_SECRET" ]; }; then
               echo "GIGACHAT creds are EMPTY"; exit 1; else echo "GIGACHAT creds are SET"; fi
           else
             if [ -z "$OPENAI_API_KEY" ]; then echo "OPENAI_API_KEY is EMPTY"; exit 1; else echo "OPENAI_API_KEY is SET"; fi
-          fi
-          if [ "${IMAGE_PROVIDER:-unsplash}" = "unsplash" ]; then
-            if [ -z "$UNSPLASH_ACCESS_KEY" ]; then echo "UNSPLASH_ACCESS_KEY is EMPTY"; exit 1; else echo "UNSPLASH_ACCESS_KEY is SET"; fi
-          elif [ "${IMAGE_PROVIDER}" = "pexels" ]; then
-            if [ -z "$PEXELS_API_KEY" ]; then echo "PEXELS_API_KEY is EMPTY"; exit 1; else echo "PEXELS_API_KEY is SET"; fi
-          else
-            if [ -z "$PIXABAY_API_KEY" ]; then echo "PIXABAY_API_KEY is EMPTY"; exit 1; else echo "PIXABAY_API_KEY is SET"; fi
           fi
 
       - name: Prepare git config
@@ -83,11 +74,9 @@ jobs:
         env:
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'openai' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
-          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
           GIGACHAT_CLIENT_ID: ${{ secrets.GIGACHAT_CLIENT_ID }}
           GIGACHAT_CLIENT_SECRET: ${{ secrets.GIGACHAT_CLIENT_SECRET }}
+          GIGACHAT_BASIC: ${{ secrets.GIGACHAT_BASIC }}
           IMAGE_PROVIDER: ${{ env.IMAGE_PROVIDER }}
           CONTENT_BASE_DIR: ${{ env.CONTENT_BASE_DIR }}
           ARTICLES_PER_DAY: ${{ env.ARTICLES_PER_DAY }}

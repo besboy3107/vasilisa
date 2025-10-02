@@ -17,9 +17,10 @@ def write_markdown(post: Dict[str, Any], images_meta: List[Dict[str, Any]], out_
         "date": datetime.now(timezone.utc).isoformat(),
         "description": post.get("description"),
         "keywords": post.get("keywords", []),
-        "images": images_meta,
         "sources": post.get("sources", []),
     }
+    if images_meta:
+        frontmatter["images"] = images_meta
     sections = post.get("sections", [])
     body_parts: List[str] = []
     for sec in sections:

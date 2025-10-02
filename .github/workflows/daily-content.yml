@@ -53,6 +53,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Show git info
+        run: |
+          set -x
+          git --version
+          git status -sb || true
+          git remote -v || true
+          echo "Branch: ${GITHUB_REF} / ${GITHUB_REF_NAME}"
+
       - name: Generate content
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -68,6 +76,8 @@ jobs:
       - name: Commit and push changes
         env:
           BRANCH_NAME: ${{ github.ref_name }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           set -e
           git add content
@@ -75,6 +85,7 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "chore(content): add daily generated articles"
+            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
             git fetch origin "$BRANCH_NAME"
             git pull --rebase origin "$BRANCH_NAME" || true
             git push origin HEAD:"$BRANCH_NAME"

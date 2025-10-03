@@ -13,7 +13,7 @@ def _extract_json(text: str) -> str:
     return m.group(0) if m else text
 
 
-def _build_prompt(topic: str) -> str:
+def _build_prompt(topic: str, target_chars: int | None = None) -> str:
     return (
         "Сгенерируй статью на русском строго в формате JSON с полями:\n"
         "{\n"
@@ -30,13 +30,14 @@ def _build_prompt(topic: str) -> str:
         "  ],\n"
         "  \"sources\": [{\"title\":\"...\", \"url\":\"...\"}]\n"
         "}\n\n"
-        "Требования: 800-1200 слов, краткие абзацы, списки, примеры. Не выдумывай факты;"
+        "Требования: краткие абзацы, списки, примеры. Не выдумывай факты;"
         " если не уверен — пиши общими словами. Тон — экспертно, дружелюбно."
+        + (f" Ограничь общий объём примерно {target_chars} символов." if target_chars else "")
         f"\nТема: {topic}\n"
     )
 
 
-def generate_article_payload(topic: str, cfg: Config) -> Dict[str, Any]:
+def generate_article_payload(topic: str, cfg: Config, *, target_chars: int | None = None) -> Dict[str, Any]:
     if cfg.llm_provider == "gigachat":
         return _generate_with_gigachat(topic, cfg)
     # default: openai-compatible
@@ -54,7 +55,7 @@ def generate_article_payload(topic: str, cfg: Config) -> Dict[str, Any]:
         "Ты — опытный редактор. Пиши структурированные, читабельные статьи."
         " Возвращай только валидный JSON без пояснений."
     )
-    user_msg = _build_prompt(topic)
+    user_msg = _build_prompt(topic, target_chars)
 
     resp = client.chat.completions.create(
         model=cfg.openai_model,
@@ -92,7 +93,7 @@ def _gigachat_get_token(cfg: Config) -> str:
     return resp.json().get("access_token")
 
 
-def _generate_with_gigachat(topic: str, cfg: Config) -> Dict[str, Any]:
+def _generate_with_gigachat(topic: str, cfg: Config, *, target_chars: int | None = None) -> Dict[str, Any]:
     if not (cfg.gigachat_basic or (cfg.gigachat_client_id and cfg.gigachat_client_secret)):
         raise RuntimeError("Provide GIGACHAT_BASIC or both GIGACHAT_CLIENT_ID and GIGACHAT_CLIENT_SECRET")
 
@@ -106,7 +107,7 @@ def _generate_with_gigachat(topic: str, cfg: Config) -> Dict[str, Any]:
         "model": "GigaChat",  # default model name per API
         "messages": [
             {"role": "system", "content": "Ты — опытный редактор. Возвращай только валидный JSON."},
-            {"role": "user", "content": _build_prompt(topic)},
+            {"role": "user", "content": _build_prompt(topic, target_chars)},
         ],
         "temperature": 0.7,
     }

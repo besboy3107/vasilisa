@@ -77,7 +77,7 @@ jobs:
           ARTICLES_PER_DAY: ${{ env.ARTICLES_PER_DAY }}
         run: |
           set -e
-          python -m content_bot generate --count ${ARTICLES_PER_DAY}
+          python -m content_bot generate --count ${ARTICLES_PER_DAY} --topics-file scripts/topics.water.txt --target-chars 1000
           [ -d "${CONTENT_BASE_DIR}" ] && [ -n "$(ls -A "${CONTENT_BASE_DIR}" 2>/dev/null || true)" ] || {
             echo "No generated content found";
             exit 1;

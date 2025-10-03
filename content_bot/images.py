@@ -4,6 +4,14 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 from pathlib import Path
 import requests
+from io import BytesIO
+
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except Exception:
+    Image = None  # type: ignore
+    ImageDraw = None  # type: ignore
+    ImageFont = None  # type: ignore
 
 
 @dataclass
@@ -52,6 +60,23 @@ def _search_pexels(query: str, per_page: int, api_key: str, timeout: int) -> Lis
         )
     return results
 
+def _search_pixabay(query: str, per_page: int, api_key: str, timeout: int) -> List[ImageResult]:
+    endpoint = "https://pixabay.com/api/"
+    params = {"key": api_key, "q": query, "per_page": per_page, "image_type": "photo", "safesearch": "true"}
+    r = requests.get(endpoint, params=params, timeout=timeout)
+    r.raise_for_status()
+    results: List[ImageResult] = []
+    for item in r.json().get("hits", []):
+        results.append(
+            ImageResult(
+                url=item.get("largeImageURL") or item.get("webformatURL"),
+                author=item.get("user"),
+                link=item.get("pageURL"),
+                source="pixabay",
+            )
+        )
+    return results
+
 
 def search_images(
     query: str,
@@ -60,6 +85,7 @@ def search_images(
     *,
     unsplash_access_key: Optional[str] = None,
     pexels_api_key: Optional[str] = None,
+    pixabay_api_key: Optional[str] = None,
     timeout: int = 60,
 ) -> List[ImageResult]:
     provider = (provider or "unsplash").lower()
@@ -71,6 +97,10 @@ def search_images(
         if not pexels_api_key:
             raise RuntimeError("PEXELS_API_KEY is required for provider=pexels")
         return _search_pexels(query, per_page, pexels_api_key, timeout)
+    if provider == "pixabay":
+        if not pixabay_api_key:
+            raise RuntimeError("PIXABAY_API_KEY is required for provider=pixabay")
+        return _search_pixabay(query, per_page, pixabay_api_key, timeout)
     raise ValueError(f"Unknown image provider: {provider}")
 
 
@@ -82,3 +112,52 @@ def download_image(url: str, dest_path: Path, timeout: int = 120) -> None:
             for chunk in r.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)
+
+
+def generate_placeholder_image(text: str, dest_path: Path, width: int = 1200, height: int = 630) -> None:
+    if Image is None:
+        # Fallback: create a tiny blank file to avoid failure
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        dest_path.write_bytes(b"")
+        return
+
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    bg = Image.new("RGB", (width, height))
+    # Simple gradient background
+    for y in range(height):
+        r = int(60 + 120 * y / height)
+        g = int(30 + 90 * y / height)
+        b = int(120 + 80 * y / height)
+        for x in range(width):
+            bg.putpixel((x, y), (r, g, b))
+
+    draw = ImageDraw.Draw(bg)
+    # Load default font
+    try:
+        font = ImageFont.truetype("DejaVuSans.ttf", size=48)
+    except Exception:
+        font = ImageFont.load_default()
+
+    # Wrap text roughly
+    words = text.split()
+    lines: List[str] = []
+    current = ""
+    for w in words:
+        if len(current) + len(w) + 1 > 30:
+            lines.append(current)
+            current = w
+        else:
+            current = (current + " " + w).strip()
+    if current:
+        lines.append(current)
+    caption = "\n".join(lines[:5])
+
+    # Center text
+    text_w, text_h = draw.multiline_textsize(caption, font=font, spacing=8)
+    x = (width - text_w) // 2
+    y = (height - text_h) // 2
+    # Text shadow
+    draw.multiline_text((x+2, y+2), caption, font=font, fill=(0, 0, 0), spacing=8, align="center")
+    draw.multiline_text((x, y), caption, font=font, fill=(255, 255, 255), spacing=8, align="center")
+
+    bg.save(dest_path, format="JPEG", quality=90)

@@ -14,7 +14,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -26,40 +25,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Sanity checks
-        run: |
-          python -V
-          ls -la
-          python -c "import content_bot; print('content_bot import OK')"
-
-      - name: Write topics (water)
-        run: |
-          mkdir -p scripts
-          cat > scripts/topics.water.txt <<'EOF'
-Водоподготовка для дома: ключевые этапы и ошибки
-Фильтрация воды: сравнение технологий (угольные, мембранные, ионный обмен)
-Очистка воды для дачи: бюджетные решения и обслуживание
-Экология и вода: влияние очистных сооружений на природу
-Интересные факты о воде и её фильтрации для здоровья
-EOF
-
       - name: Generate content (text-only)
         run: |
-          set -ex
+          mkdir -p scripts
+          printf 'Водоподготовка для дома: ключевые этапы и ошибки\nФильтрация воды: сравнение технологий (угольные, мембранные, ионный обмен)\nОчистка воды для дачи: бюджетные решения и обслуживание\nЭкология и вода: влияние очистных сооружений на природу\nИнтересные факты о воде и её фильтрации для здоровья\n' > scripts/topics.water.txt
           python -m content_bot generate --count 3 --topics-file scripts/topics.water.txt --target-chars 1000 --output-dir content/water
 
       - name: Show generated
         run: |
-          set -x
           ls -R content/water || true
 
       - name: Commit and push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          BRANCH: ${{ github.ref_name }}
         run: |
-          set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add content/water
@@ -68,4 +47,4 @@ EOF
             exit 0
           fi
           git commit -m "content: add water articles"
-          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO}.git" HEAD:"${BRANCH}"
+          git push

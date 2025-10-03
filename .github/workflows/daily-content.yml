@@ -15,7 +15,7 @@ jobs:
       group: content-generation
       cancel-in-progress: true
     env:
-      CONTENT_BASE_DIR: content
+      CONTENT_BASE_DIR:  content/water
       ARTICLES_PER_DAY: 10
 
     steps:

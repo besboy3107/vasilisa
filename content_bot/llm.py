@@ -34,7 +34,6 @@ def _build_prompt(topic: str) -> str:
 def generate_article_payload(topic: str, cfg: Config) -> Dict[str, Any]:
     if cfg.llm_provider == "gigachat":
         return _generate_with_gigachat(topic, cfg)
-    # default: openai-compatible
     try:
         from openai import OpenAI  # type: ignore
     except Exception as e:
@@ -73,7 +72,6 @@ def _gigachat_get_token(cfg: Config) -> str:
 def _generate_with_gigachat(topic: str, cfg: Config) -> Dict[str, Any]:
     if not (cfg.gigachat_basic or (cfg.gigachat_client_id and cfg.gigachat_client_secret)):
         raise RuntimeError("Provide GIGACHAT_BASIC or both GIGACHAT_CLIENT_ID and GIGACHAT_CLIENT_SECRET")
-
     token = _gigachat_get_token(cfg)
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Accept": "application/json"}
     payload = {

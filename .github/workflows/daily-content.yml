@@ -15,7 +15,7 @@ jobs:
       group: content-generation
       cancel-in-progress: true
     env:
-      CONTENT_BASE_DIR:  content/water
+      CONTENT_BASE_DIR: content/water
       ARTICLES_PER_DAY: 10
 
     steps:
@@ -52,6 +52,31 @@ jobs:
             if [ -z "$OPENAI_API_KEY" ]; then echo "OPENAI_API_KEY is EMPTY"; exit 1; else echo "OPENAI_API_KEY is SET"; fi
           fi
 
+      - name: Prepare git config
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Show git info
+        run: |
+          set -x
+          git --version
+          git status -sb || true
+          git remote -v || true
+          echo "Branch: ${GITHUB_REF} / ${GITHUB_REF_NAME}"
+
+      - name: Write water topics file
+        run: |
+          mkdir -p scripts
+          cat > scripts/topics.water.txt <<'EOF'
+Водоподготовка для дома: ключевые этапы и ошибки
+Фильтрация воды: сравнение технологий (угольные, мембранные, ионный обмен)
+Очистка воды для дачи: бюджетные решения и обслуживание
+Экология и вода: влияние очистных сооружений на природу
+Интересные факты о воде и её фильтрации для здоровья
+EOF
+
       - name: Generate content (text-only)
         env:
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'gigachat' }}
@@ -63,7 +88,7 @@ jobs:
           ARTICLES_PER_DAY: ${{ env.ARTICLES_PER_DAY }}
         run: |
           set -e
-          python -m content_bot generate --count ${ARTICLES_PER_DAY}
+          python -m content_bot generate --count ${ARTICLES_PER_DAY} --topics-file scripts/topics.water.txt --target-chars 1000
           [ -d "${CONTENT_BASE_DIR}" ] && [ -n "$(ls -A "${CONTENT_BASE_DIR}" 2>/dev/null || true)" ] || {
             echo "No generated content found"; exit 1;
           }

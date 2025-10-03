@@ -1,9 +1,7 @@
 from __future__ import annotations
-import json
-import re
+import json, re, requests
 from typing import Any, Dict
 from .config import Config
-import requests
 
 def _extract_json(text: str) -> str:
     m = re.search(r"\{[\s\S]*\}", text)
@@ -26,28 +24,24 @@ def _build_prompt(topic: str) -> str:
         "  ],\n"
         '  "sources": [{"title":"...", "url":"..."}]\n'
         "}\n\n"
-        "Требования: 800-1200 слов, краткие абзацы, списки, примеры. Не выдумывай факты;"
-        " если не уверен — пиши общими словами. Тон — экспертно, дружелюбно."
+        "Требования: 800-1200 слов, краткие абзацы, списки, примеры. Не выдумывай факты; "
+        "если не уверен — пиши общими словами. Тон — экспертно, дружелюбно."
         f"\nТема: {topic}\n"
     )
 
 def generate_article_payload(topic: str, cfg: Config) -> Dict[str, Any]:
     if cfg.llm_provider == "gigachat":
         return _generate_with_gigachat(topic, cfg)
-    try:
-        from openai import OpenAI  # type: ignore
-    except Exception as e:
-        raise RuntimeError("openai package is required. Add to requirements.txt and install.") from e
-
+    from openai import OpenAI  # type: ignore
     if not cfg.openai_api_key:
         raise RuntimeError("OPENAI_API_KEY is not set")
-
     client = OpenAI(api_key=cfg.openai_api_key, base_url=cfg.openai_base_url or None)
-    system_msg = "Ты — опытный редактор. Пиши структурированные, читабельные статьи. Возвращай только валидный JSON без пояснений."
-    user_msg = _build_prompt(topic)
     resp = client.chat.completions.create(
         model=cfg.openai_model,
-        messages=[{"role": "system", "content": system_msg}, {"role": "user", "content": user_msg}],
+        messages=[
+            {"role": "system", "content": "Ты — опытный редактор. Возвращай только валидный JSON."},
+            {"role": "user", "content": _build_prompt(topic)},
+        ],
         temperature=0.7,
     )
     text = resp.choices[0].message.content or "{}"
@@ -64,8 +58,8 @@ def _gigachat_get_token(cfg: Config) -> str:
         headers["Authorization"] = f"Basic {cfg.gigachat_basic}"
     else:
         auth = (cfg.gigachat_client_id or "", cfg.gigachat_client_secret or "")
-    verify = cfg.gigachat_verify_ssl
-    resp = requests.post(cfg.gigachat_token_url, headers=headers, data=data, auth=auth, verify=verify, timeout=30)
+    resp = requests.post(cfg.gigachat_token_url, headers=headers, data=data, auth=auth,
+                         verify=cfg.gigachat_verify_ssl, timeout=30)
     resp.raise_for_status()
     return resp.json().get("access_token")
 
@@ -82,8 +76,8 @@ def _generate_with_gigachat(topic: str, cfg: Config) -> Dict[str, Any]:
         ],
         "temperature": 0.7,
     }
-    verify = cfg.gigachat_verify_ssl
-    resp = requests.post(f"{cfg.gigachat_base_url}/chat/completions", headers=headers, json=payload, verify=verify, timeout=60)
+    resp = requests.post(f"{cfg.gigachat_base_url}/chat/completions", headers=headers, json=payload,
+                         verify=cfg.gigachat_verify_ssl, timeout=60)
     resp.raise_for_status()
     data = resp.json()
     text = data.get("choices", [{}])[0].get("message", {}).get("content", "{}")

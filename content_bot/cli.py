@@ -18,7 +18,8 @@ def cli() -> None:
 @click.option("--topics-file", type=click.Path(path_type=Path))
 @click.option("--output-dir", type=click.Path(path_type=Path))
 @click.option("--date", "date_str", type=str)
-def generate(count: int, topics_file: Optional[Path], output_dir: Optional[Path], date_str: Optional[str]) -> None:
+@click.option("--target-chars", type=int, help="Approximate total characters per article body")
+def generate(count: int, topics_file: Optional[Path], output_dir: Optional[Path], date_str: Optional[str], target_chars: Optional[int]) -> None:
     cfg = load_config()
     if output_dir is None:
         output_dir = cfg.content_base_dir
@@ -51,13 +52,13 @@ def generate(count: int, topics_file: Optional[Path], output_dir: Optional[Path]
     for idx, topic in enumerate(topics[:count], start=1):
         click.echo(f"[{idx}/{count}] Topic: {topic}")
         try:
-            post = generate_article_payload(topic, cfg)
+            post = generate_article_payload(topic, cfg, target_chars=target_chars)
         except Exception as e:
             click.echo(f"  LLM error: {e}", err=True)
             post = _fallback_post(topic)
         slug = post.get("slug") or slugify(post.get("title") or topic)
         out_dir = (output_dir / date_dir / slug)
-        write_markdown(post, [], out_dir)
+        write_markdown(post, [], out_dir, target_chars=target_chars)
         generated += 1
         time.sleep(0.5)
 

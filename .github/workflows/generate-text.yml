@@ -26,6 +26,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Sanity checks
+        run: |
+          python -V
+          ls -la
+          python -c "import content_bot; print('content_bot import OK')"
+
       - name: Write topics (water)
         run: |
           mkdir -p scripts
@@ -39,10 +45,12 @@ EOF
 
       - name: Generate content (text-only)
         run: |
+          set -ex
           python -m content_bot generate --count 3 --topics-file scripts/topics.water.txt --target-chars 1000 --output-dir content/water
 
       - name: Show generated
         run: |
+          set -x
           ls -R content/water || true
 
       - name: Commit and push
@@ -51,6 +59,7 @@ EOF
           REPO: ${{ github.repository }}
           BRANCH: ${{ github.ref_name }}
         run: |
+          set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add content/water

@@ -66,6 +66,17 @@ jobs:
           git remote -v || true
           echo "Branch: ${GITHUB_REF} / ${GITHUB_REF_NAME}"
 
+      - name: Write water topics file
+        run: |
+          mkdir -p scripts
+          cat > scripts/topics.water.txt <<'EOF'
+Водоподготовка для дома: ключевые этапы и ошибки
+Фильтрация воды: сравнение технологий (угольные, мембранные, ионный обмен)
+Очистка воды для дачи: бюджетные решения и обслуживание
+Экология и вода: влияние очистных сооружений на природу
+Интересные факты о воде и её фильтрации для здоровья
+EOF
+
       - name: Generate content (text-only)
         env:
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'gigachat' }}

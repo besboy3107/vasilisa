@@ -10,15 +10,12 @@ except Exception:
 
 @dataclass
 class Config:
-    # LLM selection
     llm_provider: str  # "openai" | "gigachat"
 
-    # OpenAI-compatible
     openai_api_key: Optional[str]
     openai_base_url: Optional[str]
     openai_model: str
 
-    # GigaChat (Sber)
     gigachat_client_id: Optional[str]
     gigachat_client_secret: Optional[str]
     gigachat_basic: Optional[str]
@@ -27,7 +24,6 @@ class Config:
     gigachat_token_url: str
     gigachat_verify_ssl: bool
 
-    # Generation controls
     content_base_dir: Path
     articles_per_day: int
     inline_images: int

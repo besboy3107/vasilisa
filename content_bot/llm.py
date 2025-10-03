@@ -39,7 +39,7 @@ def _build_prompt(topic: str, target_chars: int | None = None) -> str:
 
 def generate_article_payload(topic: str, cfg: Config, *, target_chars: int | None = None) -> Dict[str, Any]:
     if cfg.llm_provider == "gigachat":
-        return _generate_with_gigachat(topic, cfg)
+        return _generate_with_gigachat(topic, cfg, target_chars=target_chars)
     # default: openai-compatible
     try:
         from openai import OpenAI  # type: ignore

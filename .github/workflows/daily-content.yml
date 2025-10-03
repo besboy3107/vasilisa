@@ -84,22 +84,19 @@ EOF
           GIGACHAT_CLIENT_ID: ${{ secrets.GIGACHAT_CLIENT_ID }}
           GIGACHAT_CLIENT_SECRET: ${{ secrets.GIGACHAT_CLIENT_SECRET }}
           GIGACHAT_BASIC: ${{ secrets.GIGACHAT_BASIC }}
-          CONTENT_BASE_DIR: ${{ env.CONTENT_BASE_DIR }}
           ARTICLES_PER_DAY: ${{ env.ARTICLES_PER_DAY }}
         run: |
           set -e
-          python -m content_bot generate --count ${ARTICLES_PER_DAY} --topics-file scripts/topics.water.txt --target-chars 1000
-          [ -d "${CONTENT_BASE_DIR}" ] && [ -n "$(ls -A "${CONTENT_BASE_DIR}" 2>/dev/null || true)" ] || {
-            echo "No generated content found"; exit 1;
-          }
+          python -m content_bot generate --count ${ARTICLES_PER_DAY} --topics-file scripts/topics.water.txt --target-chars 1000 --output-dir content/water
+          [ -d "content/water" ] && [ -n "$(ls -A "content/water" 2>/dev/null || true)" ] || { echo "No generated content found"; exit 1; }
 
       - name: List generated files
         run: |
-          echo "Listing ${CONTENT_BASE_DIR} (if exists)"
-          if [ -d "${CONTENT_BASE_DIR}" ]; then
-            ls -R "${CONTENT_BASE_DIR}" || true
+          echo "Listing content/water (if exists)"
+          if [ -d "content/water" ]; then
+            ls -R "content/water" || true
           else
-            echo "Directory ${CONTENT_BASE_DIR} does not exist"
+            echo "Directory content/water does not exist"
           fi
 
       - name: Create pull request with generated content
@@ -115,4 +112,4 @@ EOF
           branch: bot/daily-content
           branch-suffix: timestamp
           add-paths: |
-            ${{ env.CONTENT_BASE_DIR }}/**
+            content/water/**

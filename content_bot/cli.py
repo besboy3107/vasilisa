@@ -1,30 +1,43 @@
 from __future__ import annotations
-import sys, time
+import sys
+import time
 from pathlib import Path
 from typing import Optional, Dict, Any, List
+
 import click
 from slugify import slugify
+
 from .config import load_config
 from .topics import load_topics
 from .llm import generate_article_payload
 from .writer import write_markdown
 
+
 @click.group()
 def cli() -> None:
     pass
 
+
 @cli.command()
-@click.option("--count", default=10, show_default=True, type=int)
+@click.option("--count", default=3, show_default=True, type=int)
 @click.option("--topics-file", type=click.Path(path_type=Path))
 @click.option("--output-dir", type=click.Path(path_type=Path))
 @click.option("--date", "date_str", type=str)
 @click.option("--target-chars", type=int, help="Approximate total characters per article body")
-def generate(count: int, topics_file: Optional[Path], output_dir: Optional[Path], date_str: Optional[str], target_chars: Optional[int]) -> None:
+def generate(
+    count: int,
+    topics_file: Optional[Path],
+    output_dir: Optional[Path],
+    date_str: Optional[str],
+    target_chars: Optional[int],
+) -> None:
     cfg = load_config()
     if output_dir is None:
         output_dir = cfg.content_base_dir
+
     from datetime import datetime, timezone
     date_dir = date_str or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
     topics = load_topics(count, topics_file)
     if not topics:
         click.echo("No topics found", err=True)
@@ -56,11 +69,12 @@ def generate(count: int, topics_file: Optional[Path], output_dir: Optional[Path]
         except Exception as e:
             click.echo(f"  LLM error: {e}", err=True)
             post = _fallback_post(topic)
+
         slug = post.get("slug") or slugify(post.get("title") or topic)
         out_dir = (output_dir / date_dir / slug)
         write_markdown(post, [], out_dir, target_chars=target_chars)
         generated += 1
-        time.sleep(0.5)
+        time.sleep(0.2)
 
     if generated == 0:
         click.echo("No articles generated", err=True)

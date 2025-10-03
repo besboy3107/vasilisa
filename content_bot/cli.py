@@ -1,39 +1,30 @@
 from __future__ import annotations
-import sys
-import time
+import sys, time
 from pathlib import Path
 from typing import Optional, Dict, Any, List
-
 import click
 from slugify import slugify
-
 from .config import load_config
 from .topics import load_topics
 from .llm import generate_article_payload
 from .writer import write_markdown
 
-
 @click.group()
 def cli() -> None:
-    """Content bot CLI."""
-
+    pass
 
 @cli.command()
-@click.option("--count", default=10, show_default=True, type=int, help="How many articles to generate")
-@click.option("--topics-file", type=click.Path(path_type=Path), help="Optional file with topics (one per line)")
-@click.option("--output-dir", type=click.Path(path_type=Path), help="Base content directory")
-@click.option("--date", "date_str", type=str, help="YYYY-MM-DD for subdir; default: today UTC")
+@click.option("--count", default=10, show_default=True, type=int)
+@click.option("--topics-file", type=click.Path(path_type=Path))
+@click.option("--output-dir", type=click.Path(path_type=Path))
+@click.option("--date", "date_str", type=str)
 @click.option("--target-chars", type=int, help="Approximate total characters per article body")
 def generate(count: int, topics_file: Optional[Path], output_dir: Optional[Path], date_str: Optional[str], target_chars: Optional[int]) -> None:
-    """Generate N articles with images into content/DATE/SLUG."""
     cfg = load_config()
-
     if output_dir is None:
         output_dir = cfg.content_base_dir
-
     from datetime import datetime, timezone
     date_dir = date_str or datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
     topics = load_topics(count, topics_file)
     if not topics:
         click.echo("No topics found", err=True)
@@ -50,18 +41,9 @@ def generate(count: int, topics_file: Optional[Path], output_dir: Optional[Path]
             "keywords": ["черновик", "статья"],
             "description": "Автоматически сгенерированный черновик статьи.",
             "sections": [
-                {
-                    "heading": "Введение",
-                    "content_md": "Черновик создан автоматически, так как основной провайдер контента недоступен. Обновите ключи API и перезапустите генерацию.",
-                },
-                {
-                    "heading": "Основные идеи",
-                    "content_md": "Опишите ключевые тезисы по теме и добавьте примеры.",
-                },
-                {
-                    "heading": "Выводы",
-                    "content_md": "Сформулируйте краткие выводы и список действий.",
-                },
+                {"heading": "Введение", "content_md": "Черновик создан автоматически. Обновите ключи LLM и перезапустите."},
+                {"heading": "Основные идеи", "content_md": "Опишите ключевые тезисы по теме и добавьте примеры."},
+                {"heading": "Выводы", "content_md": "Сформулируйте краткие выводы и список действий."},
             ],
             "image_queries": [{"topic": topic_text, "style": "vibrant, cinematic"}],
             "sources": [],
@@ -74,7 +56,6 @@ def generate(count: int, topics_file: Optional[Path], output_dir: Optional[Path]
         except Exception as e:
             click.echo(f"  LLM error: {e}", err=True)
             post = _fallback_post(topic)
-
         slug = post.get("slug") or slugify(post.get("title") or topic)
         out_dir = (output_dir / date_dir / slug)
         write_markdown(post, [], out_dir, target_chars=target_chars)

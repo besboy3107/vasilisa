@@ -88,10 +88,7 @@ EOF
         run: |
           set -e
           python -m content_bot generate --count ${ARTICLES_PER_DAY} --topics-file scripts/topics.water.txt --target-chars 1000 --output-dir content/water
-          [ -d "content/water" ] && [ -n "$(ls -A "content/water" 2>/dev/null || true)" ] || {
-            echo "No generated content found";
-            exit 1;
-          }
+          [ -d "content/water" ] && [ -n "$(ls -A "content/water" 2>/dev/null || true)" ] || { echo "No generated content found"; exit 1; }
 
       - name: List generated files
         run: |

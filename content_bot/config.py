@@ -5,21 +5,17 @@ from pathlib import Path
 
 try:
     from dotenv import load_dotenv
-except Exception:  # optional at runtime if not installed
+except Exception:
     load_dotenv = None  # type: ignore
-
 
 @dataclass
 class Config:
-    # LLM selection
     llm_provider: str  # "openai" | "gigachat"
 
-    # OpenAI-compatible
     openai_api_key: Optional[str]
     openai_base_url: Optional[str]
     openai_model: str
 
-    # GigaChat (Sber)
     gigachat_client_id: Optional[str]
     gigachat_client_secret: Optional[str]
     gigachat_basic: Optional[str]
@@ -28,25 +24,17 @@ class Config:
     gigachat_token_url: str
     gigachat_verify_ssl: bool
 
-    # Images
-    unsplash_access_key: Optional[str]
-    pexels_api_key: Optional[str]
-    pixabay_api_key: Optional[str]
-    image_provider: str  # "unsplash" | "pexels" | "pixabay"
-
-    # Generation controls
     content_base_dir: Path
     articles_per_day: int
     inline_images: int
     request_timeout_seconds: int
-
 
 def load_config(env_path: Optional[Path] = None) -> Config:
     if load_dotenv is not None:
         if env_path is None:
             env_path = Path(os.getcwd()) / ".env"
         if env_path.exists():
-            load_dotenv(env_path)  # load if present
+            load_dotenv(env_path)
 
     llm_provider = os.getenv("LLM_PROVIDER", "openai").lower()
 
@@ -62,11 +50,6 @@ def load_config(env_path: Optional[Path] = None) -> Config:
     gigachat_token_url = os.getenv("GIGACHAT_TOKEN_URL", "https://ngw.devices.sberbank.ru:9443/api/v2/oauth")
     gigachat_verify_ssl = os.getenv("GIGACHAT_VERIFY_SSL", "true").lower() in ("1", "true", "yes")
 
-    unsplash_access_key = os.getenv("UNSPLASH_ACCESS_KEY")
-    pexels_api_key = os.getenv("PEXELS_API_KEY")
-    pixabay_api_key = os.getenv("PIXABAY_API_KEY")
-    image_provider = os.getenv("IMAGE_PROVIDER", "unsplash").lower()
-
     content_base_dir = Path(os.getenv("CONTENT_BASE_DIR", "content")).resolve()
     articles_per_day = int(os.getenv("ARTICLES_PER_DAY", "10"))
     inline_images = int(os.getenv("INLINE_IMAGES", "2"))
@@ -79,15 +62,11 @@ def load_config(env_path: Optional[Path] = None) -> Config:
         openai_model=openai_model,
         gigachat_client_id=gigachat_client_id,
         gigachat_client_secret=gigachat_client_secret,
+        gigachat_basic=gigachat_basic,
         gigachat_scope=gigachat_scope,
         gigachat_base_url=gigachat_base_url,
         gigachat_token_url=gigachat_token_url,
         gigachat_verify_ssl=gigachat_verify_ssl,
-        gigachat_basic=gigachat_basic,
-        unsplash_access_key=unsplash_access_key,
-        pexels_api_key=pexels_api_key,
-        pixabay_api_key=pixabay_api_key,
-        image_provider=image_provider,
         content_base_dir=content_base_dir,
         articles_per_day=articles_per_day,
         inline_images=inline_images,
